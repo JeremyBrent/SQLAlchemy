@@ -18,10 +18,6 @@ engine = create_engine('sqlite:///Resources/hawaii.sqlite')
 Base = automap_base()
 Base.prepare(engine,reflect=True)
 
-session = Session(engine)
-
-measurements = Base.classes.measurement
-stations = Base.classes.station
 
 @app.route("/")
 def home():
@@ -36,6 +32,10 @@ def home():
 
 @app.route("/api/v1.0/precipitation")
 def precip():
+    session = Session(engine)
+
+    measurements = Base.classes.measurement
+    stations = Base.classes.station
 
     maxdate = session.query(func.max(measurements.date))[0][0]
 
@@ -63,6 +63,11 @@ def precip():
 @app.route("/api/v1.0/stations")
 def station():
 
+    session = Session(engine)
+
+    measurements = Base.classes.measurement
+    stations = Base.classes.station
+
     station_name_code = session.query(stations.station,stations.name).group_by(stations.name).all()
     
     station_df = pd.DataFrame(station_name_code)
@@ -73,7 +78,11 @@ def station():
     
 @app.route("/api/v1.0/tobs")
 def tobs():
-    
+    session = Session(engine)
+
+    measurements = Base.classes.measurement
+    stations = Base.classes.station
+
     maxdate = session.query(func.max(measurements.date))[0][0]
 
     year = int(maxdate[:4])
