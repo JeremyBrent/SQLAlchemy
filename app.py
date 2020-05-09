@@ -23,10 +23,10 @@ Base.prepare(engine,reflect=True)
 def home():
     return(
         "<br>Available Routes:</br>"
-        "<br> <a href=/api/v1.0/precipitation target=_blank> Precipitation Data </a>"
-        "<br> <a href=/api/v1.0/stations target=_blank> Station Data </a>"
-        "<br> <a href=/api/v1.0/tobs target=_blank> Temperature Observation Data </a>"
-        "<br>/api/v1.0/start_date"
+        "<br> <button> <a href=/api/v1.0/precipitation target=_blank> Precipitation Data </a> </button>"
+        "<br> <button> <a href=/api/v1.0/stations target=_blank> Station Data </a> </button>"
+        "<br> <button> <a href=/api/v1.0/tobs target=_blank> Temperature Observation Data </a> <button>"
+        "<br><br>/api/v1.0/start_date"
         "<br>/api/v1.0/start_date/end_date"
         )
 
