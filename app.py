@@ -24,6 +24,7 @@ stations = Base.classes.station
 @app.route("/")
 def home():
     return(
+        "<h1> Hawaii Weather Station Data </h1>"
         "<br>Available Routes:</br>"
         "<br> <button> <a href=/api/v1.0/precipitation target=_blank> Precipitation Data </a> </button>"
         "<br> <button> <a href=/api/v1.0/stations target=_blank> Station Data </a> </button>"
@@ -48,12 +49,12 @@ def precip():
     prcp_at_station = "USC00519281"
 
     # Design a query to retrieve the last 12 months of precipitation data
-    last12months = session.query(measurements.date,measurements.prcp).\
+    last12months = session.query(measurements.station,measurements.date,measurements.prcp).\
         filter(measurements.date > query_date).\
         filter(measurements.station == prcp_at_station).all()
 
     # # Save the query results as a Pandas DataFrame,sort the df by date and set the index to the date column
-    df = pd.DataFrame(last12months).sort_values('date').set_index('date')
+    df = pd.DataFrame(last12months).sort_values('date')
     df = df.rename(columns={'prcp':'precipitation'})
 
     df = df.to_json(orient="table")
@@ -111,7 +112,7 @@ def tobs():
     return temp_df
 
 @app.route("/api/v1.0/<start_date>")
-def dytobs(start_date):
+def starttobs(start_date):
     # yyyy-mm-dd
     session = Session(engine)
 
@@ -127,12 +128,13 @@ def dytobs(start_date):
     return temp_after_start_json
 
 @app.route("/api/v1.0/<start_date>/<end_date>")
-def dytobs(start_date,end_date):
+def betweentobs(start_date,end_date):
 
     session = Session(engine)
 
     temp_between_start = session.query(func.min(measurements.tobs),func.avg(measurements.tobs),func.max(measurements.tobs)).\
-        filter(measurements.date >= start_date and measurements.date <= end_date).all()
+        filter(measurements.date >= start_date).\
+        filter(measurements.date <= end_date).all()
 
     temp_between_start_df = pd.DataFrame(temp_between_start,columns = ["Minimum Temperature","Average Temperature","Maximum Temperature"])
 
