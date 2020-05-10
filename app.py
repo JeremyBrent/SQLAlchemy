@@ -18,6 +18,8 @@ engine = create_engine('sqlite:///Resources/hawaii.sqlite')
 Base = automap_base()
 Base.prepare(engine,reflect=True)
 
+measurements = Base.classes.measurement
+stations = Base.classes.station
 
 @app.route("/")
 def home():
@@ -25,17 +27,15 @@ def home():
         "<br>Available Routes:</br>"
         "<br> <button> <a href=/api/v1.0/precipitation target=_blank> Precipitation Data </a> </button>"
         "<br> <button> <a href=/api/v1.0/stations target=_blank> Station Data </a> </button>"
-        "<br> <button> <a href=/api/v1.0/tobs target=_blank> Temperature Observation Data </a> <button>"
-        "<br><br>/api/v1.0/start_date"
-        "<br>/api/v1.0/start_date/end_date"
+        "<br> <button> <a href=/api/v1.0/tobs target=_blank> Temperature Observation Data </a> </button>"
+        "<br><br> <div> To view the minimum, average, and maximum temperature after a start date, enter yyyy-mm-dd in the path: /api/v1.0/yyyy-mm-dd </div>"
+        "<br> To view the minimum, average, and maximum temperature between to dates, enter yyyy-mm-dd for both the start and end dates: /api/v1.0/start_date(yyyy-mm-dd)/end_date(yyyy-mm-dd)"
         )
 
 @app.route("/api/v1.0/precipitation")
 def precip():
     session = Session(engine)
 
-    measurements = Base.classes.measurement
-    stations = Base.classes.station
 
     maxdate = session.query(func.max(measurements.date))[0][0]
 
@@ -58,6 +58,8 @@ def precip():
 
     df = df.to_json(orient="table")
 
+    session.close()
+
     return df
 
 @app.route("/api/v1.0/stations")
@@ -65,23 +67,22 @@ def station():
 
     session = Session(engine)
 
-    measurements = Base.classes.measurement
-    stations = Base.classes.station
-
-    station_name_code = session.query(stations.station,stations.name).group_by(stations.name).all()
+    station_name_code = session.query(measurements.station,stations.name,func.count(measurements.station)).\
+        filter(stations.station==measurements.station).\
+        group_by(measurements.station).\
+        order_by(func.count(measurements.station).desc()).all()
     
-    station_df = pd.DataFrame(station_name_code)
+    station_df = pd.DataFrame(station_name_code,columns=["station","name","observations"])
 
     station_json = station_df.to_json(orient='table')
+
+    session.close()
     
     return station_json
     
 @app.route("/api/v1.0/tobs")
 def tobs():
     session = Session(engine)
-
-    measurements = Base.classes.measurement
-    stations = Base.classes.station
 
     maxdate = session.query(func.max(measurements.date))[0][0]
 
@@ -95,7 +96,7 @@ def tobs():
         group_by(measurements.station).\
         order_by(func.count(measurements.station).desc()).first()
 
-    temp = session.query(measurements.date,measurements.tobs).\
+    temp = session.query(measurements.station,measurements.date,measurements.tobs).\
         filter(measurements.date > query_date).\
         filter(measurements.station==stationmost[0]).all()
     
@@ -105,7 +106,41 @@ def tobs():
 
     temp_df = temp_df.to_json(orient='table')
 
+    session.close()
+
     return temp_df
+
+@app.route("/api/v1.0/<start_date>")
+def dytobs(start_date):
+    # yyyy-mm-dd
+    session = Session(engine)
+
+    temp_after_start = session.query(func.min(measurements.tobs),func.avg(measurements.tobs),func.max(measurements.tobs)).\
+        filter(measurements.date >= start_date).all()
+
+    temp_after_start_df = pd.DataFrame(temp_after_start,columns = ["Minimum Temperature","Average Temperature","Maximum Temperature"])
+
+    temp_after_start_json = temp_after_start_df.to_json(orient='table')
+    
+    session.close()
+
+    return temp_after_start_json
+
+@app.route("/api/v1.0/<start_date>/<end_date>")
+def dytobs(start_date,end_date):
+
+    session = Session(engine)
+
+    temp_between_start = session.query(func.min(measurements.tobs),func.avg(measurements.tobs),func.max(measurements.tobs)).\
+        filter(measurements.date >= start_date and measurements.date <= end_date).all()
+
+    temp_between_start_df = pd.DataFrame(temp_between_start,columns = ["Minimum Temperature","Average Temperature","Maximum Temperature"])
+
+    temp_between_start_json = temp_between_start_df.to_json(orient='table')
+    
+    session.close()
+
+    return temp_between_start_json
 
 
 if __name__ == '__main__':
